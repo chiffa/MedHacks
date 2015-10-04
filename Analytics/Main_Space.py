@@ -9,16 +9,19 @@ import numpy as np
 import os
 import supporting_functions as SF
 from itertools import izip
+from pickle import dump, load
 
 
 path = '/home/andrei/Documents/MedHacks'
-# name = os.path.join(path, 'audio_1.wav')
-# name = os.path.join(path, 'audio_5_brent_chest_30s.wav')
+# base_name = 'audio_24_anna_neck_30s.wav'
+# # name = os.path.join(path, 'audio_5_brent_chest_30s.wav')
 # name = os.path.join(path, 'audio_19_andrei_neck.wav')
-name = os.path.join(path, 'audio_22_brent_chest_3min.wav')
+# name = os.path.join(path, 'audio_22_brent_chest_3min.wav')
+# name = os.path.join(path, 'audio_26_suyi_neck_30s.wav')
+# name = os.path.join(path, 'audio_24_anna_neck_30s.wav')
+name = os.path.join(path, 'audio_27_katherine_neck_30s.wav')
 
-
-timeframe = 180.
+timeframe = 30.
 cutoff = 110.
 inner_cut = 2
 
@@ -46,6 +49,7 @@ x_frequency = np.linspace(0, rate, frame/2)
 data = gaussian_filter1d(data, sigma=10, axis=0)
 diff = data[0:frame, 0] - data[0:frame, 1]
 
+diff = -diff
 
 def filter_hum(array_to_clear):
 
@@ -65,10 +69,10 @@ def filter_hum(array_to_clear):
 def chop_dataset(input_array, collapse=0.0):
     grad = np.gradient(input_array)
 
-    grad_filter = -0.002
-    inf_filter = -0.75
-    sup_filter = 0.5
-    filter_window = 0.025
+    grad_filter = -0.0022
+    inf_filter = -0.6
+    sup_filter = 0.4
+    filter_window = 0.05
 
     x_time = np.linspace(0, input_array.shape[0]/float(rate), input_array.shape[0])
 
@@ -173,9 +177,8 @@ def splice_n_stitch(input_array, chop_points):
 def fold_line(input_array, chop_points):
     delay_times = 60./(np.array(chop_points)[1:] - np.array(chop_points)[:-1])
     delay_times = SF.remove_outliers(delay_times, 0.01)
-    SF.smooth_histogram(delay_times, 'k')
 
-    print 'pulse: %s bpm, std: %s bpm' % (np.nanmean(delay_times), np.nanstd(delay_times, ddof=1))
+    pulse, std = (np.nanmean(delay_times), np.nanstd(delay_times, ddof=1))
 
     lane_bank = []
     l_offsets = []
@@ -191,18 +194,14 @@ def fold_line(input_array, chop_points):
         if l_offset > l_max:
             l_max = l_offset
 
-    # print lane_bank
-
     support_array = np.zeros((len(lane_bank), int((l_max+r_max)*rate)))
     for i, (l_offset, array) in enumerate(izip(l_offsets, lane_bank)):
         support_array[i, int((l_max-l_offset)*rate) : int((l_max-l_offset)*rate)+array.shape[0]] = array
 
     x_range = np.linspace(-l_max, r_max, int((l_max+r_max)*rate))
 
-    plt.plot(x_range, np.average(support_array, axis=0), color='k')
-    plt.show()
+    return x_range, np.average(support_array, axis=0), delay_times, pulse, std
 
-    return np.average(support_array, axis=0), support_array
 
 def plot(input_array):
     grad = np.gradient(input_array)
@@ -215,13 +214,28 @@ def plot(input_array):
     plt.show()
 
 
+def render_analysis(x_range, average, delays, pulse, std):
+    title = 'Pulse: %s bpm\n Pulse Standard Deviation: %s bpm' % ("{0:.2f}".format(pulse), "{0:.2f}".format(std))
+
+    plt.plot(x_range, average, color='k')
+    plt.show()
+
+    SF.smooth_histogram(delays, 'k', title)
+
+
+def render_multiple_analyses(x_ranges, average_array, delays_array, pulse_array, std_array):
+    pass
+
+
 if __name__ == '__main__':
     new_time_r = filter_hum(diff)
-    # plot(new_time_r)
+    plot(new_time_r)
     chop_points = chop_dataset(new_time_r)
     new_time_r = splice_n_stitch(new_time_r, chop_points)
     chop_points = chop_dataset(new_time_r, collapse=0.33)
-    average, ref_set = fold_line(new_time_r, chop_points)
+    x_range, average, delays, pulse, std = fold_line(new_time_r, chop_points)
+    render_analysis(x_range, average, delays, pulse, std)
 
-    # TODO: sort data to see which one is the peak side
+    dump((x_range, average, delays, pulse, std), open(name[:-3].split('/')[-1]+'dmp', 'w'))
+
 
