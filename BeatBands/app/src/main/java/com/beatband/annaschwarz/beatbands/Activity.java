@@ -46,7 +46,11 @@ public class Activity extends android.app.Activity {
                         .setNegativeButton("No", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id)
                             {
-                                dialog.cancel();
+                                Intent phoneIntent = new Intent(Intent.ACTION_CALL);
+                                phoneIntent.setData(Uri.parse("tel:443-676-8571"));
+                                startActivity(phoneIntent);
+                                finish();
+
                             }
                         });
                 AlertDialog alert = builder.create();
@@ -85,7 +89,7 @@ public class Activity extends android.app.Activity {
 
             public void onTick(long millisUntilFinished) {
                 n = millisUntilFinished / 1000;
-        if(click==true){
+        if(click){
             n=0;
                 }
                 mTextField.setText("seconds remaining: " + millisUntilFinished / 1000);
