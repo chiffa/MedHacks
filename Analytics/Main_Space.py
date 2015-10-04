@@ -52,8 +52,8 @@ def filter_hum(array_to_clear):
     frame_fft = rfft(array_to_clear)
     frame_fft[freq_to_frame(110):] = 0
 
-    # plt.semilogy(x_frequency, 2.0/frame*np.abs(frame_fft[:frame/2]))
-    # plt.tight_layout()
+    # plt.semilogy(x_frequency, 2.0/frame*np.abs(frame_fft[:frame/2]), color='k')
+    # plt.xlim([0, 250])
     # plt.show()
 
     refactored_array = irfft(frame_fft)
@@ -126,16 +126,15 @@ def chop_dataset(input_array, collapse=0.0):
 
         new_retained_pairs = np.array(retained_pairs)[np.logical_not(keeplist)]
         retained_pairs = new_retained_pairs.tolist()
-        # new_pair_scores = pair_scores[np.logical_not(keeplist.tolist()).nonzero()]
 
-    plt.plot(x_time[inner_cut*rate:-inner_cut*rate], input_array[inner_cut*rate:-inner_cut*rate])
+    plt.plot(x_time[inner_cut*rate:-inner_cut*rate], input_array[inner_cut*rate:-inner_cut*rate], color='k')
     # SF.show_breakpoints(brps1.tolist(), 'g')
     # SF.show_breakpoints(brps2.tolist(), 'y')
     # SF.show_breakpoints(brps3.tolist(), 'r')
 
-    SF.show_breakpoints(retained_pairs, 'k')
-    plt.axhline(sup_filter)
-    plt.axhline(inf_filter)
+    SF.show_breakpoints(retained_pairs, color='r')
+    # plt.axhline(sup_filter, 'r')
+    # plt.axhline(inf_filter, 'r')
     plt.show()
 
     return retained_pairs
@@ -158,9 +157,12 @@ def splice_n_stitch(input_array, chop_points):
     # print anomalous
     # print anomaly_lane.shape, anomaly_lane
 
-    plt.plot(x_time[inner_cut*rate:-inner_cut*rate], input_array[inner_cut*rate:-inner_cut*rate])
-    plt.plot(x_time[inner_cut*rate:-inner_cut*rate], anomaly_lane[inner_cut*rate:-inner_cut*rate])
-    SF.show_breakpoints(chop_points, 'k')
+    plt.plot(x_time[inner_cut*rate:-inner_cut*rate], input_array[inner_cut*rate:-inner_cut*rate], 'k')
+    plt.fill_between(x_time[inner_cut*rate:-inner_cut*rate], np.zeros_like(anomaly_lane)[inner_cut*rate:-inner_cut*rate],
+                      anomaly_lane[inner_cut*rate:-inner_cut*rate]*5, color='r')
+    plt.fill_between(x_time[inner_cut*rate:-inner_cut*rate], np.zeros_like(anomaly_lane)[inner_cut*rate:-inner_cut*rate],
+                      -anomaly_lane[inner_cut*rate:-inner_cut*rate]*5, color='r')
+    # SF.show_breakpoints(chop_points, 'k')
     plt.show()
 
     new_input_array = input_array[np.logical_not(anomaly_lane)]
@@ -170,15 +172,9 @@ def splice_n_stitch(input_array, chop_points):
 
 def fold_line(input_array, chop_points):
     delay_times = 60./(np.array(chop_points)[1:] - np.array(chop_points)[:-1])
+    delay_times = SF.remove_outliers(delay_times, 0.01)
+    SF.smooth_histogram(delay_times, 'k')
 
-    delay_times = SF.remove_outliers(delay_times, 0.05)
-
-    print delay_times
-    plt.hist(SF.rm_nans(delay_times), 100)
-    plt.show()
-
-    # print np.array(chop_points)[1:] - np.array(chop_points)[:-1]
-    # print delay_times
     print 'pulse: %s bpm, std: %s bpm' % (np.nanmean(delay_times), np.nanstd(delay_times, ddof=1))
 
     lane_bank = []
@@ -201,26 +197,12 @@ def fold_line(input_array, chop_points):
     for i, (l_offset, array) in enumerate(izip(l_offsets, lane_bank)):
         support_array[i, int((l_max-l_offset)*rate) : int((l_max-l_offset)*rate)+array.shape[0]] = array
 
-    # norm_array = -support_array[:, int(l_max*rate)]
-    # print norm_array.shape
-    # print norm_array
-    # print(support_array.shape)
-    # support_array /= norm_array[:, np.newaxis]
-
     x_range = np.linspace(-l_max, r_max, int((l_max+r_max)*rate))
-    for i in range(0, support_array.shape[0]):
-        plt.plot(x_range, support_array[i])
-    plt.show()
 
-    plt.plot(x_range, np.average(support_array, axis=0))
+    plt.plot(x_range, np.average(support_array, axis=0), color='k')
     plt.show()
 
     return np.average(support_array, axis=0), support_array
-
-
-def profile_distance():
-    pass
-
 
 def plot(input_array):
     grad = np.gradient(input_array)

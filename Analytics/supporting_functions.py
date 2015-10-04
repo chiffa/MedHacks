@@ -4,6 +4,7 @@ __author__ = 'andrei'
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import norm, poisson
+from scipy.stats import gaussian_kde
 
 
 def rm_nans(np_array):
@@ -120,3 +121,11 @@ def local_min(a):
 def show_breakpoints(breakpoints, color = 'k'):
     for point in breakpoints:
         plt.axvline(x=point, color=color)
+
+def smooth_histogram(data, color='k'):
+    fltr = np.logical_not(np.isnan(data))
+    density = gaussian_kde(data[fltr].flatten())
+    xs = np.linspace(data[fltr].min(), data[fltr].max(), 100)
+    plt.plot(xs, density(xs), color='k', lw=3)
+    plt.fill_between(xs, np.zeros_like(density(xs)), density(xs), color='r', alpha=0.25)
+    plt.show()
