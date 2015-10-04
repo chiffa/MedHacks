@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.17"
+        android:weightSum="1"
+        android:background="#4b58a3">
+
+        <TextView
+            android:layout_width="270dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Are you ok?"
+            android:textSize="50sp"
+            android:id="@+id/Header" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView"
+            android:textSize="20sp"
+            android:layout_gravity="right" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_weight="0.36">
+
+        <Button
+            android:layout_width="141dp"
+            android:layout_height="wrap_content"
+            android:text="Text a Friend"
+            android:id="@+id/button2"
+            android:layout_weight="0.10"
+            android:layout_gravity="center_horizontal"/>
+
+        <Button
+            android:layout_width="141dp"
+            android:layout_height="wrap_content"
+            android:text="Dial 911"
+            android:id="@+id/button3"
+            android:layout_gravity="center_horizontal"
+            android:layout_weight="0.10" />
+
+        <Button
+            android:layout_width="141dp"
+            android:layout_height="wrap_content"
+            android:text="Ok"
+            android:id="@+id/button1"
+            android:layout_gravity="center_horizontal"
+            android:layout_weight="0.10" />
+    </LinearLayout>
+
+</LinearLayout>
