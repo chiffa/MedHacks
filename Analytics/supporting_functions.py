@@ -108,7 +108,6 @@ def brp_setter(breakpoints_set, prebreakpoint_values):
 def local_min(a):
     return np.r_[True, a[1:] < a[:-1]] & np.r_[a[:-1] < a[1:], True]
 
-
 def show_breakpoints(breakpoints, color = 'k'):
     for point in breakpoints:
         plt.axvline(x=point, color=color)
