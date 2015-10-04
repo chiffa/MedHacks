@@ -68,6 +68,15 @@ def get_outliers(lane, FDR):
     return outliers
 
 
+def remove_outliers(lane, FDR):
+    lo, ho = Tukey_outliers(lane, FDR)
+    non_outliers = lane.copy()
+    non_outliers[ho] = np.nan
+    non_outliers[lo] = np.nan
+
+    return non_outliers
+
+
 def pull_breakpoints(contingency_list):
     """
     A method to extract breakpoints separating np.array regions with the same value.

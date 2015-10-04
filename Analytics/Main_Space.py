@@ -18,7 +18,7 @@ path = '/home/andrei/Documents/MedHacks'
 name = os.path.join(path, 'audio_22_brent_chest_3min.wav')
 
 
-timeframe = 30.
+timeframe = 180.
 cutoff = 110.
 inner_cut = 2
 
@@ -62,15 +62,19 @@ def filter_hum(array_to_clear):
     return refactored_array
 
 
-def chop_dataset(input_array):
+def chop_dataset(input_array, collapse=0.0):
     grad = np.gradient(input_array)
 
+    grad_filter = -0.002
     inf_filter = -0.75
     sup_filter = 0.5
     filter_window = 0.025
 
+    x_time = np.linspace(0, input_array.shape[0]/float(rate), input_array.shape[0])
 
-    poi1 = grad < -0.002
+    _timeframe = input_array.shape[0]/float(rate)
+
+    poi1 = grad < grad_filter
     local_minima1 = SF.local_min(grad)
     combined1 = np.logical_and(local_minima1, poi1)
 
@@ -83,24 +87,46 @@ def chop_dataset(input_array):
     combined3 = np.logical_and(local_max3, poi3)
 
     brps1 = np.nonzero(combined1)[0]
-    brps1 = [x_time[brp] for brp in brps1.tolist() if x_time[brp]>inner_cut and x_time[brp]<timeframe-inner_cut]
+    brps1 = [x_time[brp] for brp in brps1.tolist() if x_time[brp]>inner_cut and x_time[brp]<_timeframe-inner_cut]
 
     brps2 = np.nonzero(combined2)[0]
-    brps2 = [x_time[brp] for brp in brps2.tolist() if x_time[brp]>inner_cut and x_time[brp]<timeframe-inner_cut]
+    brps2 = [x_time[brp] for brp in brps2.tolist() if x_time[brp]>inner_cut and x_time[brp]<_timeframe-inner_cut]
 
     brps3 = np.nonzero(combined3)[0]
-    brps3 = [x_time[brp] for brp in brps3.tolist() if x_time[brp]>inner_cut and x_time[brp]<timeframe-inner_cut]
+    brps3 = [x_time[brp] for brp in brps3.tolist() if x_time[brp]>inner_cut and x_time[brp]<_timeframe-inner_cut]
 
     brps1 = np.array(brps1)
     brps2 = np.array(brps2)
     brps3 = np.array(brps3)
 
     retained_pairs = []
+    pair_scores = []
     for brp in brps1:
         candidate_list1 = brps2[np.logical_and(brps2 > brp, brps2 < brp+filter_window)]
         candidate_list2 = brps3[np.logical_and(brps3 < brp, brps3 > brp-filter_window)]
         if len(candidate_list1) > 0 and len(candidate_list2) > 0:
-            retained_pairs.append(candidate_list1[0])
+            if len(retained_pairs) == 0:
+                retained_pairs.append(candidate_list1[0])
+                pair_scores.append(input_array[int(candidate_list1[0]*rate)]-input_array[int(candidate_list2[-1]*rate)])
+            elif np.abs(candidate_list1[0]-retained_pairs[-1]) > 0.01:
+                retained_pairs.append(candidate_list1[0])
+                pair_scores.append(input_array[int(candidate_list2[-1]*rate)]-input_array[int(candidate_list1[0]*rate)])
+
+    if collapse:
+        pair_dists = np.array(retained_pairs[1:]) - np.array(retained_pairs[:-1])
+        flter = pair_dists < collapse
+        supression_list = []
+        for i in flter.nonzero()[0]:
+            if pair_scores[i] < pair_scores[i+1]:
+                supression_list.append(i)
+            else:
+                supression_list.append(i+1)
+        keeplist = np.zeros_like(retained_pairs).astype(np.bool)
+        keeplist[supression_list] = True
+
+        new_retained_pairs = np.array(retained_pairs)[np.logical_not(keeplist)]
+        retained_pairs = new_retained_pairs.tolist()
+        # new_pair_scores = pair_scores[np.logical_not(keeplist.tolist()).nonzero()]
 
     plt.plot(x_time[inner_cut*rate:-inner_cut*rate], input_array[inner_cut*rate:-inner_cut*rate])
     # SF.show_breakpoints(brps1.tolist(), 'g')
@@ -112,39 +138,45 @@ def chop_dataset(input_array):
     plt.axhline(inf_filter)
     plt.show()
 
-
-    # TODO: detect the regions of repetition
-    # TODO: detect the regions or rapid oscillation. excise from analysis
-
-    retained_pairs = sorted(list(set(retained_pairs)))
-
     return retained_pairs
 
 
 def splice_n_stitch(input_array, chop_points):
-    print len(chop_points)
-    print input_array.shape[0]
+    # print len(chop_points)
+    # print input_array.shape[0]
+
+    interval_floor = 0.33
+
     chop_points = np.array(chop_points+[input_array.shape[0]/float(rate)])
     intervals = chop_points[1:] - chop_points[:-1]
-    anomalous = np.array([False]+(intervals < 0.2).tolist())
+    anomalous = np.array([False]+(intervals < interval_floor).tolist())
     anomalous = np.logical_and(anomalous[1:-1], np.logical_or(anomalous[2:], anomalous[:-2]))
     anomalous = np.array([False] + anomalous.tolist() + [False])
-    cut_points = (chop_points*rate).astype(np.int64)
-    print cut_points
+    # cut_points = (chop_points*rate).astype(np.int64)
+    # print cut_points
     anomaly_lane = SF.brp_setter(chop_points*rate, anomalous).astype(np.int16)
-    print anomalous
-    print anomaly_lane.shape, anomaly_lane
+    # print anomalous
+    # print anomaly_lane.shape, anomaly_lane
 
     plt.plot(x_time[inner_cut*rate:-inner_cut*rate], input_array[inner_cut*rate:-inner_cut*rate])
     plt.plot(x_time[inner_cut*rate:-inner_cut*rate], anomaly_lane[inner_cut*rate:-inner_cut*rate])
     SF.show_breakpoints(chop_points, 'k')
     plt.show()
 
-    # TODO: Brps of anomaly: if more than one anomalous segment in a row, throwi it away: if 2 and 1 or 3
+    new_input_array = input_array[np.logical_not(anomaly_lane)]
+
+    return new_input_array
 
 
 def fold_line(input_array, chop_points):
     delay_times = 60./(np.array(chop_points)[1:] - np.array(chop_points)[:-1])
+
+    delay_times = SF.remove_outliers(delay_times, 0.05)
+
+    print delay_times
+    plt.hist(SF.rm_nans(delay_times), 100)
+    plt.show()
+
     # print np.array(chop_points)[1:] - np.array(chop_points)[:-1]
     # print delay_times
     print 'pulse: %s bpm, std: %s bpm' % (np.nanmean(delay_times), np.nanstd(delay_times, ddof=1))
@@ -205,7 +237,8 @@ if __name__ == '__main__':
     new_time_r = filter_hum(diff)
     # plot(new_time_r)
     chop_points = chop_dataset(new_time_r)
-    chop_points, new_time_r = splice_n_stitch(new_time_r, chop_points)
+    new_time_r = splice_n_stitch(new_time_r, chop_points)
+    chop_points = chop_dataset(new_time_r, collapse=0.33)
     average, ref_set = fold_line(new_time_r, chop_points)
 
     # TODO: sort data to see which one is the peak side
