@@ -12,14 +12,21 @@ from itertools import izip
 from pickle import dump, load
 
 
-path = '/home/andrei/Documents/MedHacks'
+####################
+# Configure source directories here!
+####################
+
+
+path = '../Sample_Files/'
 # base_name = 'audio_24_anna_neck_30s.wav'
 # # name = os.path.join(path, 'audio_5_brent_chest_30s.wav')
 # name = os.path.join(path, 'audio_19_andrei_neck.wav')
-# name = os.path.join(path, 'audio_22_brent_chest_3min.wav')
+name = os.path.join(path, 'audio_22_brent_chest_3min.wav')
 # name = os.path.join(path, 'audio_26_suyi_neck_30s.wav')
 # name = os.path.join(path, 'audio_24_anna_neck_30s.wav')
-name = os.path.join(path, 'audio_27_katherine_neck_30s.wav')
+# name = os.path.join(path, 'audio_27_katherine_neck_30s.wav')
+# name = os.path.join(path, 'audio_28_john_neck_30s.wav')
+
 
 timeframe = 30.
 cutoff = 110.
@@ -49,7 +56,7 @@ x_frequency = np.linspace(0, rate, frame/2)
 data = gaussian_filter1d(data, sigma=10, axis=0)
 diff = data[0:frame, 0] - data[0:frame, 1]
 
-diff = -diff
+# diff = -diff
 
 def filter_hum(array_to_clear):
 
@@ -69,10 +76,10 @@ def filter_hum(array_to_clear):
 def chop_dataset(input_array, collapse=0.0):
     grad = np.gradient(input_array)
 
-    grad_filter = -0.0022
-    inf_filter = -0.6
-    sup_filter = 0.4
-    filter_window = 0.05
+    grad_filter = -0.0025
+    inf_filter = -0.75
+    sup_filter = 0.5
+    filter_window = 0.025
 
     x_time = np.linspace(0, input_array.shape[0]/float(rate), input_array.shape[0])
 
@@ -236,6 +243,8 @@ if __name__ == '__main__':
     x_range, average, delays, pulse, std = fold_line(new_time_r, chop_points)
     render_analysis(x_range, average, delays, pulse, std)
 
-    dump((x_range, average, delays, pulse, std), open(name[:-3].split('/')[-1]+'dmp', 'w'))
-
+    # dump((x_range, average, delays, pulse, std), open(name[:-3].split('/')[-1]+'dmp', 'w'))
+    #
+    # x_range, average, delays, pulse, std = load(open(name[:-3].split('/')[-1]+'dmp', 'r'))
+    # render_analysis(x_range, average, delays, pulse, std)
 
