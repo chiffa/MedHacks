@@ -14,7 +14,8 @@ from itertools import izip
 path = '/home/andrei/Documents/MedHacks'
 # name = os.path.join(path, 'audio_1.wav')
 # name = os.path.join(path, 'audio_5_brent_chest_30s.wav')
-name = os.path.join(path, 'audio_19_andrei_neck.wav')
+# name = os.path.join(path, 'audio_19_andrei_neck.wav')
+name = os.path.join(path, 'audio_22_brent_chest_3min.wav')
 
 
 timeframe = 30.
@@ -111,9 +112,35 @@ def chop_dataset(input_array):
     plt.axhline(inf_filter)
     plt.show()
 
+
+    # TODO: detect the regions of repetition
+    # TODO: detect the regions or rapid oscillation. excise from analysis
+
     retained_pairs = sorted(list(set(retained_pairs)))
 
     return retained_pairs
+
+
+def splice_n_stitch(input_array, chop_points):
+    print len(chop_points)
+    print input_array.shape[0]
+    chop_points = np.array(chop_points+[input_array.shape[0]/float(rate)])
+    intervals = chop_points[1:] - chop_points[:-1]
+    anomalous = np.array([False]+(intervals < 0.2).tolist())
+    anomalous = np.logical_and(anomalous[1:-1], np.logical_or(anomalous[2:], anomalous[:-2]))
+    anomalous = np.array([False] + anomalous.tolist() + [False])
+    cut_points = (chop_points*rate).astype(np.int64)
+    print cut_points
+    anomaly_lane = SF.brp_setter(chop_points*rate, anomalous).astype(np.int16)
+    print anomalous
+    print anomaly_lane.shape, anomaly_lane
+
+    plt.plot(x_time[inner_cut*rate:-inner_cut*rate], input_array[inner_cut*rate:-inner_cut*rate])
+    plt.plot(x_time[inner_cut*rate:-inner_cut*rate], anomaly_lane[inner_cut*rate:-inner_cut*rate])
+    SF.show_breakpoints(chop_points, 'k')
+    plt.show()
+
+    # TODO: Brps of anomaly: if more than one anomalous segment in a row, throwi it away: if 2 and 1 or 3
 
 
 def fold_line(input_array, chop_points):
@@ -178,6 +205,7 @@ if __name__ == '__main__':
     new_time_r = filter_hum(diff)
     # plot(new_time_r)
     chop_points = chop_dataset(new_time_r)
+    chop_points, new_time_r = splice_n_stitch(new_time_r, chop_points)
     average, ref_set = fold_line(new_time_r, chop_points)
 
     # TODO: sort data to see which one is the peak side
