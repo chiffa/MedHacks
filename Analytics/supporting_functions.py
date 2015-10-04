@@ -122,10 +122,11 @@ def show_breakpoints(breakpoints, color = 'k'):
     for point in breakpoints:
         plt.axvline(x=point, color=color)
 
-def smooth_histogram(data, color='k'):
+def smooth_histogram(data, color, title):
     fltr = np.logical_not(np.isnan(data))
     density = gaussian_kde(data[fltr].flatten())
     xs = np.linspace(data[fltr].min(), data[fltr].max(), 100)
+    plt.title(title)
     plt.plot(xs, density(xs), color='k', lw=3)
     plt.fill_between(xs, np.zeros_like(density(xs)), density(xs), color='r', alpha=0.25)
     plt.show()
